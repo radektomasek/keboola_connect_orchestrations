@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:scoped_model/scoped_model.dart';
+import './orchestration_list.dart';
+import '../scoped-models/main.dart';
 
 class AuthPage extends StatefulWidget {
   @override
@@ -47,19 +50,47 @@ class _AuthPageState extends State<AuthPage> {
   }
 
   Widget _buildSubmitButton() {
-    return FlatButton(
-      child: Text('Login'),
-      onPressed: _handleSubmitForm,
+    return ScopedModelDescendant<MainModel>(
+      builder: (BuildContext context, Widget child, MainModel model) {
+        return model.isLoading
+            ? CircularProgressIndicator()
+            : FlatButton(
+                child: Text('Login'),
+                onPressed: () => _handleSubmitForm(model.isTokenValid),
+              );
+      },
     );
   }
 
-  void _handleSubmitForm() {
+  void _handleSubmitForm(Function isTokenValid) async {
     if (!_formKey.currentState.validate()) {
       return;
     }
 
     _formKey.currentState.save();
-    print('token: $_authToken');
+    bool isValid = await isTokenValid(_authToken);
+    if (isValid) {
+      Navigator.pushReplacementNamed(context, '/orchestrations');
+    } else {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('An error occurred'),
+            content: Text(
+                'Fetching of orchestrations wasn\'t successful. Please verify your token and try it again!'),
+            actions: <Widget>[
+              FlatButton(
+                child: Text('Okay'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          );
+        },
+      );
+    }
   }
 
   @override
