@@ -52,23 +52,44 @@ class _OrchestrationListState extends State<OrchestrationList> {
               itemBuilder: (BuildContext context, int index) {
                 return Column(
                   children: <Widget>[
-                    ListTile(
-                      leading:
-                          model.allOrchestrations[index].status == 'success'
-                              ? Icon(Icons.check)
-                              : Icon(Icons.cancel),
-                      title: Text(model.allOrchestrations[index].name),
-                      subtitle: Text(
-                          model.allOrchestrations[index].lastScheduledTime),
-                      onTap: () {
-                        Navigator.pushNamed<bool>(
-                          context,
-                          '/orchestration/${model.allOrchestrations[index].id}',
-                        );
-                      },
-                      onLongPress: () {
-                        print('I am going to open modal');
-                      },
+                    Card(
+                      margin: EdgeInsets.all(5.0),
+                      child: Column(
+                        children: <Widget>[
+                          Container(
+                            decoration: BoxDecoration(
+                              border: Border(
+                                left: BorderSide(
+                                  color:
+                                      model.allOrchestrations[index].status ==
+                                              'success'
+                                          ? Color(0xFF5CB85C)
+                                          : Color(0xFFD9534F),
+                                  width: 25.0,
+                                ),
+                              ),
+                            ),
+                            child: ListTile(
+                              trailing: model.allOrchestrations[index].status ==
+                                      'success'
+                                  ? Icon(Icons.check)
+                                  : Icon(Icons.cancel),
+                              title: Text(model.allOrchestrations[index].name),
+                              subtitle: Text(model
+                                  .allOrchestrations[index].lastScheduledTime),
+                              onTap: () {
+                                Navigator.pushNamed<bool>(
+                                  context,
+                                  '/orchestration/${model.allOrchestrations[index].id}',
+                                );
+                              },
+                              onLongPress: () {
+                                print('I am going to open modal');
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                     Divider(),
                   ],

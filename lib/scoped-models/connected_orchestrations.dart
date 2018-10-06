@@ -6,10 +6,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/user.dart';
 import '../models/orchestration.dart';
+import '../models/orchestration_detail.dart';
 
 class ConnectedOrchestrationsModel extends Model {
   List<Orchestration> _orchestrations = [];
-  Orchestration _selectedOrchestration;
+  List<OrchestrationDetail> _selectedOrchestration = [];
   User _authenticatedUser;
   bool _isLoading = false;
 }
@@ -19,7 +20,7 @@ class KeboolaConnectionModel extends ConnectedOrchestrationsModel {
     return List.from(_orchestrations);
   }
 
-  Orchestration get selectedOrchestration {
+  List<OrchestrationDetail> get selectedOrchestration {
     return _selectedOrchestration;
   }
 
@@ -28,25 +29,32 @@ class KeboolaConnectionModel extends ConnectedOrchestrationsModel {
     notifyListeners();
     try {
       http.Response response = await http.get(
-          'https://syrup.eu-central-1.keboola.com/orchestrator/orchestrations/${orchestrationId.toString()}',
+          'https://syrup.eu-central-1.keboola.com/orchestrator/orchestrations/${orchestrationId.toString()}/jobs',
           headers: {
             'Content-Type': 'application/json',
             'X-StorageApi-Token': _authenticatedUser.token
           });
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> responseData = json.decode(response.body);
-        _selectedOrchestration = Orchestration(
-          id: responseData['id'],
-          name: responseData['name'],
-          active: responseData['active'],
-          createdTime: responseData['createdTime'],
-          status: responseData['lastExecutedJob']['status'],
-          lastScheduledTime: responseData['lastScheduledTime'],
-          nextScheduledTime: responseData['nextScheduledTime'],
-        );
+        final List<dynamic> responseData = json.decode(response.body);
+        final List<OrchestrationDetail> orchestrationDetailList =
+            responseData.map(
+          (orchestrationDetail) {
+            return OrchestrationDetail(
+              id: orchestrationDetail['id'],
+              active: orchestrationDetail['active'],
+              status: orchestrationDetail['status'],
+              endTime: orchestrationDetail['endTime'],
+              description: orchestrationDetail['token']['description'],
+              errorMessage: orchestrationDetail['results']['tasks'][0]
+                  ['response']['result']['message'],
+            );
+          },
+        ).toList();
 
+        _selectedOrchestration = orchestrationDetailList;
         _isLoading = false;
+
         notifyListeners();
         return true;
       } else {
@@ -54,6 +62,7 @@ class KeboolaConnectionModel extends ConnectedOrchestrationsModel {
         throw (responseData['message']);
       }
     } catch (error) {
+      print(error);
       _isLoading = false;
       notifyListeners();
       return false;
@@ -87,7 +96,7 @@ class KeboolaConnectionModel extends ConnectedOrchestrationsModel {
           },
         ).toList();
         _orchestrations = orchestrationList;
-        _selectedOrchestration = null;
+        _selectedOrchestration = [];
         _isLoading = false;
         notifyListeners();
         return true;
