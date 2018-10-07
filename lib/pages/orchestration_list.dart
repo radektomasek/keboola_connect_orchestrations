@@ -21,6 +21,8 @@ class _OrchestrationListState extends State<OrchestrationList> {
     widget.model.fetchOrchestrations();
   }
 
+  bool isSuccess(status) => status.toString() == 'success';
+
   Widget _buildSideDrawer(BuildContext context) {
     return Drawer(
       child: Column(
@@ -47,7 +49,7 @@ class _OrchestrationListState extends State<OrchestrationList> {
     return ScopedModelDescendant<MainModel>(
       builder: (BuildContext context, Widget child, MainModel model) {
         Widget content = Center(child: Text('No orchestration found!'));
-        if (model.allOrchestrations.length > 0 && !model.isLoading) {
+        if (model.highlightedOrchestrations.length > 0 && !model.isLoading) {
           content = ListView.builder(
               itemBuilder: (BuildContext context, int index) {
                 return Column(
@@ -60,31 +62,100 @@ class _OrchestrationListState extends State<OrchestrationList> {
                             decoration: BoxDecoration(
                               border: Border(
                                 left: BorderSide(
-                                  color:
-                                      model.allOrchestrations[index].status ==
-                                              'success'
-                                          ? Color(0xFF5CB85C)
-                                          : Color(0xFFD9534F),
+                                  color: model.highlightedOrchestrations[index]
+                                              .status ==
+                                          'success'
+                                      ? Color(0xFF5CB85C)
+                                      : Color(0xFFD9534F),
                                   width: 25.0,
                                 ),
                               ),
                             ),
                             child: ListTile(
-                              trailing: model.allOrchestrations[index].status ==
+                              trailing: model.highlightedOrchestrations[index]
+                                          .status ==
                                       'success'
                                   ? Icon(Icons.check)
                                   : Icon(Icons.cancel),
-                              title: Text(model.allOrchestrations[index].name),
-                              subtitle: Text(model
-                                  .allOrchestrations[index].lastScheduledTime),
+                              title: Text(
+                                  model.highlightedOrchestrations[index].name),
+                              subtitle: isSuccess(model
+                                      .highlightedOrchestrations[index].status)
+                                  ? Text(
+                                      'succeeded at ${model.highlightedOrchestrations[index].lastScheduledTime}')
+                                  : Text(
+                                      'failed at ${model.highlightedOrchestrations[index].lastScheduledTime}'),
                               onTap: () {
                                 Navigator.pushNamed<bool>(
                                   context,
-                                  '/orchestration/${model.allOrchestrations[index].id}',
+                                  '/orchestration/${model.highlightedOrchestrations[index].id}',
                                 );
                               },
                               onLongPress: () {
-                                print('I am going to open modal');
+                                return showModalBottomSheet<void>(
+                                    context: context,
+                                    builder: (BuildContext context) {
+                                      return Container(
+                                        child: Padding(
+                                          padding: EdgeInsets.all(32.0),
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: <Widget>[
+                                              ListTile(
+                                                leading:
+                                                    Icon(Icons.description),
+                                                title: Text('Go to detail'),
+                                                onTap: () {
+                                                  Navigator.pushNamed<bool>(
+                                                    context,
+                                                    '/orchestration/${model.highlightedOrchestrations[index].id}',
+                                                  ).then((bool) {
+                                                    Navigator.pop(context);
+                                                  });
+                                                },
+                                              ),
+                                              ListTile(
+                                                leading: !model
+                                                        .highlightedOrchestrations[
+                                                            index]
+                                                        .isFavorite
+                                                    ? Icon(
+                                                        Icons
+                                                            .add_circle_outline,
+                                                      )
+                                                    : Icon(
+                                                        Icons
+                                                            .remove_circle_outline,
+                                                      ),
+                                                title: !model
+                                                        .highlightedOrchestrations[
+                                                            index]
+                                                        .isFavorite
+                                                    ? Text('Add to favorites')
+                                                    : Text(
+                                                        'Remove from favorites'),
+                                                onTap: () {
+                                                  model.toggleOrchestrationFavoriteStatus(
+                                                      model
+                                                          .highlightedOrchestrations[
+                                                              index]
+                                                          .id);
+                                                  Navigator.pop(context);
+                                                },
+                                              ),
+                                              ListTile(
+                                                leading:
+                                                    Icon(Icons.expand_more),
+                                                title: Text('Dismiss'),
+                                                onTap: () {
+                                                  Navigator.pop(context);
+                                                },
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    });
                               },
                             ),
                           ),
@@ -95,7 +166,7 @@ class _OrchestrationListState extends State<OrchestrationList> {
                   ],
                 );
               },
-              itemCount: widget.model.allOrchestrations.length);
+              itemCount: widget.model.highlightedOrchestrations.length);
         } else if (widget.model.isLoading) {
           content = Container(
             margin: EdgeInsets.all(12.0),
@@ -121,9 +192,17 @@ class _OrchestrationListState extends State<OrchestrationList> {
         title: Text('Orchestration List'),
         centerTitle: true,
         actions: <Widget>[
-          IconButton(
-            icon: Icon(Icons.favorite_border),
-            onPressed: () {},
+          ScopedModelDescendant<MainModel>(
+            builder: (BuildContext context, Widget child, MainModel model) {
+              return IconButton(
+                icon: Icon(model.displayFavoritesOnly
+                    ? Icons.favorite
+                    : Icons.favorite_border),
+                onPressed: () {
+                  model.toggleDisplayMode();
+                },
+              );
+            },
           )
         ],
       ),

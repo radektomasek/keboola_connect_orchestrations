@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 class Orchestration {
   final int id;
   final bool active;
+  final bool isFavorite;
   final String status;
   final String name;
   final String createdTime;
@@ -17,5 +18,6 @@ class Orchestration {
     @required this.createdTime,
     @required this.nextScheduledTime,
     @required this.lastScheduledTime,
+    this.isFavorite = false,
   });
 }

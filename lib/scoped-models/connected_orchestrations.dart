@@ -17,12 +17,54 @@ class ConnectedOrchestrationsModel extends Model {
 }
 
 class KeboolaConnectionModel extends ConnectedOrchestrationsModel {
+  bool _showFavorites = false;
+
   List<Orchestration> get allOrchestrations {
     return List.from(_orchestrations);
   }
 
+  List<Orchestration> get highlightedOrchestrations {
+    if (_showFavorites) {
+      return _orchestrations
+          .where((Orchestration orchestration) => orchestration.isFavorite)
+          .toList();
+    }
+
+    return List.from(_orchestrations);
+  }
+
+  void toggleOrchestrationFavoriteStatus(int id) {
+    final List<Orchestration> updatedOrchestrationList =
+        _orchestrations.map((Orchestration orchestration) {
+      if (orchestration.id == id) {
+        return Orchestration(
+            id: orchestration.id,
+            active: orchestration.active,
+            createdTime: orchestration.createdTime,
+            lastScheduledTime: orchestration.lastScheduledTime,
+            name: orchestration.name,
+            nextScheduledTime: orchestration.lastScheduledTime,
+            status: orchestration.status,
+            isFavorite: !orchestration.isFavorite);
+      }
+      return orchestration;
+    }).toList();
+
+    _orchestrations = updatedOrchestrationList;
+    notifyListeners();
+  }
+
+  void toggleDisplayMode() {
+    _showFavorites = !_showFavorites;
+    notifyListeners();
+  }
+
   List<OrchestrationDetail> get selectedOrchestration {
     return _selectedOrchestration;
+  }
+
+  bool get displayFavoritesOnly {
+    return _showFavorites;
   }
 
   Future<bool> fetchOrchestrationById(int orchestrationId) async {
@@ -63,7 +105,6 @@ class KeboolaConnectionModel extends ConnectedOrchestrationsModel {
         throw (responseData['message']);
       }
     } catch (error) {
-      print(error);
       _isLoading = false;
       notifyListeners();
       return false;
@@ -154,7 +195,6 @@ class UserModel extends ConnectedOrchestrationsModel {
       final Map<String, dynamic> responseData = json.decode(response.body);
       throw (responseData['message']);
     } catch (error) {
-      print(error);
       _isLoading = false;
       notifyListeners();
       return false;
