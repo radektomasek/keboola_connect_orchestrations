@@ -4,6 +4,7 @@ import 'package:scoped_model/scoped_model.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/auth.dart';
 import '../models/user.dart';
 import '../models/orchestration.dart';
 import '../models/orchestration_detail.dart';
@@ -29,7 +30,7 @@ class KeboolaConnectionModel extends ConnectedOrchestrationsModel {
     notifyListeners();
     try {
       http.Response response = await http.get(
-          'https://syrup.eu-central-1.keboola.com/orchestrator/orchestrations/${orchestrationId.toString()}/jobs',
+          '${_authenticatedUser.datacenter}/orchestrator/orchestrations/${orchestrationId.toString()}/jobs',
           headers: {
             'Content-Type': 'application/json',
             'X-StorageApi-Token': _authenticatedUser.token
@@ -74,7 +75,7 @@ class KeboolaConnectionModel extends ConnectedOrchestrationsModel {
     notifyListeners();
     try {
       http.Response response = await http.get(
-          'https://syrup.eu-central-1.keboola.com/orchestrator/orchestrations',
+          '${_authenticatedUser.datacenter}/orchestrator/orchestrations',
           headers: {
             'Content-Type': 'application/json',
             'X-StorageApi-Token': _authenticatedUser.token
@@ -112,28 +113,40 @@ class KeboolaConnectionModel extends ConnectedOrchestrationsModel {
   }
 }
 
+String getBaseApiUrl(Datacenter datacenter) {
+  if (datacenter == Datacenter.AU) {
+    return 'https://syrup.ap-southeast-2.keboola.com';
+  } else if (datacenter == Datacenter.EU) {
+    return 'https://syrup.eu-central-1.keboola.com';
+  } else {
+    return 'https://syrup.keboola.com';
+  }
+}
+
 class UserModel extends ConnectedOrchestrationsModel {
   User get user {
     return _authenticatedUser;
   }
 
-  Future<bool> isTokenValid(String token) async {
+  Future<bool> isTokenValid(String token,
+      [Datacenter datacenter = Datacenter.EU]) async {
     _isLoading = true;
     notifyListeners();
+
+    String baseApiUrl = getBaseApiUrl(datacenter);
+
     try {
-      http.Response response = await http.get(
-          'https://syrup.eu-central-1.keboola.com/orchestrator/orchestrations',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-StorageApi-Token': token.trim()
-          });
+      http.Response response = await http
+          .get('$baseApiUrl/orchestrator/orchestrations', headers: {
+        'Content-Type': 'application/json',
+        'X-StorageApi-Token': token.trim()
+      });
 
       if (response.statusCode == 200) {
-        _authenticatedUser = User(
-          token: token,
-        );
+        _authenticatedUser = User(token: token, datacenter: baseApiUrl);
         final SharedPreferences prefs = await SharedPreferences.getInstance();
         prefs.setString('token', token.trim());
+        prefs.setString('datacenter', baseApiUrl);
         _isLoading = false;
         notifyListeners();
         return true;
@@ -152,9 +165,9 @@ class UserModel extends ConnectedOrchestrationsModel {
     try {
       final SharedPreferences prefs = await SharedPreferences.getInstance();
       final String token = prefs.getString('token');
+      final String datacenter = prefs.getString('datacenter');
       if (token != null) {
-        _authenticatedUser = User(token: token);
-        print(_authenticatedUser.token);
+        _authenticatedUser = User(token: token, datacenter: datacenter);
         notifyListeners();
       }
     } catch (error) {}
@@ -165,6 +178,7 @@ class UserModel extends ConnectedOrchestrationsModel {
       _authenticatedUser = null;
       final SharedPreferences prefs = await SharedPreferences.getInstance();
       prefs.remove('token');
+      prefs.remove('datacenter');
     } catch (error) {}
   }
 }

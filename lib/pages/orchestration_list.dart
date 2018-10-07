@@ -97,7 +97,12 @@ class _OrchestrationListState extends State<OrchestrationList> {
               },
               itemCount: widget.model.allOrchestrations.length);
         } else if (widget.model.isLoading) {
-          content = Center(child: CircularProgressIndicator());
+          content = Container(
+            margin: EdgeInsets.all(12.0),
+            child: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
         }
 
         return RefreshIndicator(

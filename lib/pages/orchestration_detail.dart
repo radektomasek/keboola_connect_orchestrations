@@ -29,7 +29,12 @@ class _OrchestrationDetailState extends State<OrchestrationDetail> {
     return ScopedModelDescendant<MainModel>(
       builder: (BuildContext context, Widget child, MainModel model) {
         if (model.isLoading) {
-          return Center(child: CircularProgressIndicator());
+          return Container(
+            margin: EdgeInsets.all(12.0),
+            child: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
         }
 
         if (model.selectedOrchestration.length == 0) {
